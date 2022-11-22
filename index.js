@@ -42,9 +42,26 @@ const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_cla
  *
  * For module hashing, do it via xxhashAsHex,
  * e.g. console.log(xxhashAsHex('System', 128)).
+ * 
+ * Total 23 modules, Out of which we need to take snapshot of following 13 modules and System.Account storages only.
+ * 
+ * 1. admin        
+ * 2. balances                    
+ * 3. credits                     
+ * 4. dct                         
+ * 5. giant_sudo                  
+ * 6. offers                      
+ * 7. provider                    
+ * 8. reward                      
+ * 9. sgiantBalances              
+ * 10. staking                     
+ * 11. uniques                     
+ * 12. validatorStake           
+ * 13. vesting     
+ * 
  */
 let prefixes = ['0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9' /* System.Account */];
-const skippedModulesPrefix = ['System', 'Session', 'Babe', 'Grandpa', 'GrandpaFinality', 'FinalityTracker', 'Authorship'];
+const skippedModulesPrefix = ['Aura', 'Grandpa', 'Identity', 'Session', 'Substrate', 'Sudo', 'System', 'Timestamp', 'TransactionPayment', 'ValidatorSet'];
 
 async function fixParachinStates (api, forkedSpec) {
   const skippedKeys = [
@@ -88,6 +105,7 @@ async function main() {
     // Download state of original chain
     console.log(chalk.green('Fetching current state of the live chain. Please wait, it can take a while depending on the size of your chain.'));
     let at = (await api.rpc.chain.getBlockHash()).toString();
+    console.log(chalk.green(`Taking state snapshot of chain at: ${at}`));
     progressBar.start(totalChunks, 0);
     const stream = fs.createWriteStream(storagePath, { flags: 'a' });
     stream.write("[");
@@ -102,12 +120,13 @@ async function main() {
   const modules = metadata.asLatest.pallets;
   modules.forEach((module) => {
     if (module.storage) {
-      if (!skippedModulesPrefix.includes(module.name)) {
+      if (!skippedModulesPrefix.includes(module.name.toString())) {
         prefixes.push(xxhashAsHex(module.name, 128));
       }
     }
   });
 
+  console.log(chalk.green(`Total modules for which state snapshot will be taken are: ${prefixes.length}`))
   // Generate chain spec for original and forked chains
   if (originalChain == '') {
     execSync(binaryPath + ` build-spec --raw > ` + originalSpecPath);
@@ -148,6 +167,7 @@ async function main() {
   if (alice !== '') {
     // Set sudo key to //Alice
     forkedSpec.genesis.raw.top['0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b'] = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
+    console.log(chalk.green('Updated sudo key of the fork to //Alice'));
   }
 
   fs.writeFileSync(forkedSpecPath, JSON.stringify(forkedSpec, null, 4));

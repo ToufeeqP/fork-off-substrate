@@ -25,6 +25,7 @@ const totalChunks = Math.pow(256, chunksLevel);
 const alice = process.env.ALICE || ''
 const originalChain = process.env.ORIG_CHAIN || '';
 const forkChain = process.env.FORK_CHAIN || '';
+const parachainSpecPath = process.env.PARACHAIN || '';
 
 let chunksFetched = 0;
 let separator = false;
@@ -105,7 +106,7 @@ async function main() {
     // Download state of original chain
     console.log(chalk.green('Fetching current state of the live chain. Please wait, it can take a while depending on the size of your chain.'));
     let at = (await api.rpc.chain.getBlockHash()).toString();
-    console.log(chalk.green(`Taking state snapshot of chain at: ${at}`));
+    console.log(chalk.cyan(`Taking state snapshot of chain at: ${at}`));
     progressBar.start(totalChunks, 0);
     const stream = fs.createWriteStream(storagePath, { flags: 'a' });
     stream.write("[");
@@ -122,21 +123,22 @@ async function main() {
     if (module.storage) {
       if (!skippedModulesPrefix.includes(module.name.toString())) {
         prefixes.push(xxhashAsHex(module.name, 128));
+        console.log(chalk.cyan(`Selected module ${module.name} for snapshot.`));
       }
     }
   });
 
-  console.log(chalk.green(`Total modules for which state snapshot will be taken are: ${prefixes.length}`))
+  console.log(chalk.cyan(`Total ${prefixes.length} modules are selected for state snapshot.`))
   // Generate chain spec for original and forked chains
   if (originalChain == '') {
-    execSync(binaryPath + ` build-spec --raw > ` + originalSpecPath);
+    execSync(binaryPath + ` build-spec --raw --disable-default-bootnode > ` + originalSpecPath);
   } else {
-    execSync(binaryPath + ` build-spec --chain ${originalChain} --raw > ` + originalSpecPath);
+    execSync(binaryPath + ` build-spec --chain ${originalChain} --raw --disable-default-bootnode > ` + originalSpecPath);
   }
   if (forkChain == '') {
-    execSync(binaryPath + ` build-spec --dev --raw > ` + forkedSpecPath);
+    execSync(binaryPath + ` build-spec --dev --raw --disable-default-bootnode > ` + forkedSpecPath);
   } else {
-    execSync(binaryPath + ` build-spec --chain ${forkChain} --raw > ` + forkedSpecPath);
+    execSync(binaryPath + ` build-spec --chain ${forkChain} --raw --disable-default-bootnode > ` + forkedSpecPath);
   }
 
   let storage = JSON.parse(fs.readFileSync(storagePath, 'utf8'));
@@ -148,13 +150,32 @@ async function main() {
   forkedSpec.id = originalSpec.id + '-fork';
   forkedSpec.protocolId = originalSpec.protocolId;
 
+  let migrated_storages = 0;
   // Grab the items to be moved, then iterate through and insert into storage
   storage
     .filter((i) => prefixes.some((prefix) => i[0].startsWith(prefix)))
-    .forEach(([key, value]) => (forkedSpec.genesis.raw.top[key] = value));
+    .forEach(([key, value]) => {
+      forkedSpec.genesis.raw.top[key] = value;
+      migrated_storages += 1;
+    });
 
+  if (parachainSpecPath != '') {
+    let paraMigrated = 0;
+    let paraSpec = JSON.parse(fs.readFileSync(parachainSpecPath, 'utf8'));
+    storage
+    .filter((i) => prefixes.some((prefix) => i[0].startsWith(prefix)))
+    .forEach(([key, value]) => {
+      paraSpec.genesis.raw.top[key] = value;
+      paraMigrated += 1;
+    });
+    fs.writeFileSync(parachainSpecPath, JSON.stringify(paraSpec, null, 4));
+    console.log(chalk.cyan(`Updated ${paraMigrated} storages from existing chain to parachain spec.`));
+  }
+
+  console.log(chalk.cyan(`Mapped ${migrated_storages} storages from existing chain to new spec.`));
   // Delete System.LastRuntimeUpgrade to ensure that the on_runtime_upgrade event is triggered
-  delete forkedSpec.genesis.raw.top['0x26aa394eea5630e07c48ae0c9558cef7f9cce9c888469bb1a0dceaa129672ef8'];
+  // This storage must not have been backup since it is from system pallet
+  // delete forkedSpec.genesis.raw.top['0x26aa394eea5630e07c48ae0c9558cef7f9cce9c888469bb1a0dceaa129672ef8'];
 
   fixParachinStates(api, forkedSpec);
 
@@ -162,13 +183,14 @@ async function main() {
   forkedSpec.genesis.raw.top['0x3a636f6465'] = '0x' + fs.readFileSync(hexPath, 'utf8').trim();
 
   // To prevent the validator set from changing mid-test, set Staking.ForceEra to ForceNone ('0x02')
-  forkedSpec.genesis.raw.top['0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3'] = '0x02';
+  // Not requred for GIANT chains
+  // forkedSpec.genesis.raw.top['0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3'] = '0x02';
 
-  if (alice !== '') {
-    // Set sudo key to //Alice
-    forkedSpec.genesis.raw.top['0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b'] = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
-    console.log(chalk.green('Updated sudo key of the fork to //Alice'));
-  }
+  // if (alice !== '') {
+  //   // Set sudo key to //Alice
+  //   forkedSpec.genesis.raw.top['0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b'] = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
+  //   console.log(chalk.green('Updated sudo key of the fork to //Alice'));
+  // }
 
   fs.writeFileSync(forkedSpecPath, JSON.stringify(forkedSpec, null, 4));
 

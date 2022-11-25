@@ -59,6 +59,7 @@ The script can be tweaked and configured using various environment variables -
 | FORK_CHAIN | Chain to use as base for the forked chain.  | `dev` |
 | ALICE | If set, the script will replace the chain's sudo account with `//Alice` | `NULL` |
 | QUICK_MODE | If set, it parallelizes the data download from the RPC endpoint | `NULL` | 
+| PARACHAIN | Parachain raw spec path, if it is set, storage snapshot will be updated to parachain genesis state for the whitelisted modules | `NULL` | 
 
 ## Read more
 

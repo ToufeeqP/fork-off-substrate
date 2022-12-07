@@ -1,14 +1,14 @@
-# Fork off substrate
+# Fork off GIANT
 
-This script allows bootstrapping a new substrate chain with the current state of a live chain. Using this, you can create a fork of Polkadot, Kusama and other substrate chain for development purposes.
+This script allows bootstrapping a new GIANT chain with the current state of a live GIANT chain. This repo is forked from [fork-off-substrate](https://github.com/maxsam4/fork-off-substrate) repo.
 
 ## Usage
 
 1. Clone this repository and install dependencies
 
     ```bash
-    git clone https://github.com/maxsam4/fork-off-substrate.git
-    cd fork-off-substrate
+    git clone https://github.com/giant-protocol/giant-fork-off.git
+    cd giant-fork-off
     npm i
     ```
 

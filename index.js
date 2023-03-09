@@ -76,11 +76,15 @@ const skippedModulesPrefix = [
   "Identity",
   "Session",
   "Substrate",
-  "Sudo",
   "System",
   "Timestamp",
   "TransactionPayment",
   "ValidatorSet",
+];
+const skippedPrefixes = [
+  "0x30db7d3f47a0e1e95d08406497cbc95d183af6c2a611d10d3c89af247d1af0f8", // DctExpiry
+  "0x30db7d3f47a0e1e95d08406497cbc95de556acf9d5dcb43ba1cd73e9244a540c", // DctDelayedRevenue
+  "0x30db7d3f47a0e1e95d08406497cbc95d3a42a7dddf1b16a1dc1cd5c92d9cb0a5", // DctYieldRewardee
 ];
 
 async function fixParachinStates(api, forkedSpec) {
@@ -210,7 +214,11 @@ async function main() {
   let migrated_storages = 0;
   // Grab the items to be moved, then iterate through and insert into storage
   storage
-    .filter((i) => prefixes.some((prefix) => i[0].startsWith(prefix)))
+    .filter(
+      (i) =>
+        prefixes.some((prefix) => i[0].startsWith(prefix)) &&
+        !skippedPrefixes.some((prefix) => i[0].startsWith(prefix))
+    )
     .forEach(([key, value]) => {
       forkedSpec.genesis.raw.top[key] = value;
       migrated_storages += 1;
@@ -220,7 +228,11 @@ async function main() {
     let paraMigrated = 0;
     let paraSpec = JSON.parse(fs.readFileSync(parachainSpecPath, "utf8"));
     storage
-      .filter((i) => prefixes.some((prefix) => i[0].startsWith(prefix)))
+      .filter(
+        (i) =>
+          prefixes.some((prefix) => i[0].startsWith(prefix)) &&
+          !skippedPrefixes.some((prefix) => i[0].startsWith(prefix))
+      )
       .forEach(([key, value]) => {
         paraSpec.genesis.raw.top[key] = value;
         paraMigrated += 1;
@@ -252,12 +264,6 @@ async function main() {
   // Not requred for GIANT chains
   // forkedSpec.genesis.raw.top['0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3'] = '0x02';
 
-  // if (alice !== '') {
-  //   // Set sudo key to //Alice
-  //   forkedSpec.genesis.raw.top['0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b'] = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
-  //   console.log(chalk.green('Updated sudo key of the fork to //Alice'));
-  // }
-
   fs.writeFileSync(forkedSpecPath, JSON.stringify(forkedSpec, null, 4));
 
   console.log(
@@ -279,6 +285,7 @@ async function fetchChunks(prefix, levelsRemaining, stream, at) {
         at,
       ]);
       if (keys.length > 0) {
+        console.log(chalk.cyan(`Fetching ${keys.length} storage keys.`));
         let pairs = [];
         await Promise.all(
           keys.map(async (key) => {

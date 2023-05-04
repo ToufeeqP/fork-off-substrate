@@ -40,6 +40,8 @@ const progressBar = new cliProgress.SingleBar(
 /**
  * All module prefixes except those mentioned in the skippedModulesPrefix will be added to this by the script.
  * If you want to add any past module or part of a skipped module, add the prefix here manually.
+ * 
+ * If you want to skip specific key within a allowed module, add the prefix(hex) manually to skippedPrefixes.
  *
  * Any storage value’s hex can be logged via console.log(api.query.<module>.<call>.key([...opt params])),
  * e.g. console.log(api.query.timestamp.now.key()).

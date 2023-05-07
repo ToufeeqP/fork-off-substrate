@@ -16,7 +16,7 @@ const originalSpecPath = path.join(__dirname, "data", "genesis.json");
 const forkedSpecPath = path.join(__dirname, "data", "fork.json");
 const storagePath = path.join(__dirname, "data", "storage.json");
 
-// Using http endpoint since substrate's Ws endpoint has a size limit.
+// Using http endpoint since substrate's WS endpoint has a size limit.
 const provider = new HttpProvider(
   process.env.HTTP_RPC_ENDPOINT || "http://localhost:9933"
 );
@@ -259,10 +259,6 @@ async function main() {
   // Set the code to the current runtime code
   forkedSpec.genesis.raw.top["0x3a636f6465"] =
     "0x" + fs.readFileSync(hexPath, "utf8").trim();
-
-  // To prevent the validator set from changing mid-test, set Staking.ForceEra to ForceNone ('0x02')
-  // Not requred for GIANT chains
-  // forkedSpec.genesis.raw.top['0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3'] = '0x02';
 
   fs.writeFileSync(forkedSpecPath, JSON.stringify(forkedSpec, null, 4));
 

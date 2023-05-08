@@ -79,7 +79,3 @@ If you would like to understand how this script works, please read this [blog po
         -e HTTP_RPC_ENDPOINT=$HTTP_RPC_ENDPOINT \
         -v "$BINARY":/data/binary
         fork-off-substrate
-
-## Credits
-
-This script is based on [a script shared in the substrate riot channel](https://hackmd.io/mGgNZX0VT4S0UTaq89-_SQ)

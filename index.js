@@ -50,7 +50,7 @@ const progressBar = new cliProgress.SingleBar(
  * For module hashing, do it via xxhashAsHex,
  * e.g. console.log(xxhashAsHex('System', 128)).
  *
- * Total 23 modules, Out of which we need to take snapshot of following 13 modules and System.Account storages only.
+ * we need to take snapshot of following 13 modules and System.Account storages only.
  *
  * 1. admin
  * 2. balances

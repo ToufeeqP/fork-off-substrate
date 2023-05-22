@@ -1,6 +1,6 @@
 # Fork off GIANT
 
-This script allows bootstrapping a new GIANT chain with the current state of a live GIANT chain. This repo is forked from [fork-off-substrate](https://github.com/maxsam4/fork-off-substrate) repo.
+This script allows bootstrapping a new GIANT chain with the current state of a live GIANT chain. This script can also be used to bootstrap a new parachain by taking the snapshot of live chain. This repo is forked from [fork-off-substrate](https://github.com/maxsam4/fork-off-substrate) repo.
 
 ## Usage
 
